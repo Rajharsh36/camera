@@ -12,35 +12,59 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            color: #fff;
         }
 
         .camera-container {
             text-align: center;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         video {
-            width: 640px;
-            height: 480px;
-            border: 1px solid #ddd;
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 5px solid #fff;
+            border-radius: 10px;
+            background-color: #000;
         }
 
         button {
+            background-color: #ff6f61;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
             margin: 10px;
             padding: 10px 20px;
             font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #ff4a4a;
         }
 
         #photo {
             display: none;
             margin-top: 20px;
-            max-width: 640px;
-            height: auto;
+            max-width: 100%;
+            border: 5px solid #fff;
+            border-radius: 10px;
+        }
+
+        #photo-container {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="camera-container">
+        <h1>Camera App</h1>
         <video id="video" autoplay></video>
         <div>
             <button id="startCamera">Start Camera</button>
@@ -48,8 +72,10 @@
             <button id="startRecording">Start Recording</button>
             <button id="stopRecording">Stop Recording</button>
         </div>
+        <div id="photo-container">
+            <img id="photo" alt="Captured Photo">
+        </div>
         <canvas id="canvas" style="display: none;"></canvas>
-        <img id="photo" alt="Captured Photo">
     </div>
     <script>
         document.getElementById('startCamera').addEventListener('click', startCamera);
@@ -79,6 +105,12 @@
             const photo = document.getElementById('photo');
             photo.src = canvas.toDataURL('image/png');
             photo.style.display = 'block';
+
+            // Create a link to download the image
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'photo.png';  // The name of the downloaded file
+            link.click();  // Trigger the download
         }
 
         function startRecording() {
