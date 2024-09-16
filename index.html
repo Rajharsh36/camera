@@ -3,24 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Access</title>
+    <title>Camera App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .camera-container {
+            text-align: center;
+        }
+
+        video {
+            width: 640px;
+            height: 480px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+
+        #photo {
+            display: none;
+            margin-top: 20px;
+            max-width: 640px;
+            height: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>Camera Feed</h1>
-    <video id="video" width="640" height="480" autoplay></video>
+    <div class="camera-container">
+        <video id="video" autoplay></video>
+        <div>
+            <button id="startCamera">Start Camera</button>
+            <button id="capturePhoto">Capture Photo</button>
+            <button id="startRecording">Start Recording</button>
+            <button id="stopRecording">Stop Recording</button>
+        </div>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <img id="photo" alt="Captured Photo">
+    </div>
     <script>
-        // Access the camera
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                // Get the video element
-                const video = document.getElementById('video');
-                // Set the video source to the stream from the camera
-                video.srcObject = stream;
-            })
-            .catch(function(error) {
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('capturePhoto').addEventListener('click', capturePhoto);
+        document.getElementById('startRecording').addEventListener('click', startRecording);
+        document.getElementById('stopRecording').addEventListener('click', stopRecording);
+
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+
+        async function startCamera() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('video').srcObject = mediaStream;
+            } catch (error) {
                 console.error('Error accessing the camera:', error);
-            });
+            }
+        }
+
+        function capturePhoto() {
+            const canvas = document.getElementById('canvas');
+            canvas.width = document.getElementById('video').videoWidth;
+            canvas.height = document.getElementById('video').videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(document.getElementById('video'), 0, 0, canvas.width, canvas.height);
+            const photo = document.getElementById('photo');
+            photo.src = canvas.toDataURL('image/png');
+            photo.style.display = 'block';
+        }
+
+        function startRecording() {
+            if (mediaStream) {
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(mediaStream);
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'video.webm';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+                mediaRecorder.start();
+            } else {
+                console.error('Camera not started');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+        }
     </script>
 </body>
 </html>
-
