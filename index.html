@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera with Filters</title>
+    <title>Camera App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,16 +12,15 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(to right, #ff7e5f, #feb47b);
-            color: #fff;
+            background: #f0f0f0;
         }
 
         .camera-container {
             text-align: center;
-            background: rgba(0, 0, 0, 0.6);
+            background: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             position: relative;
         }
 
@@ -29,13 +28,13 @@
             width: 100%;
             max-width: 640px;
             height: auto;
-            border: 5px solid #fff;
-            border-radius: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
             background-color: #000;
         }
 
-        .filter-button, .camera-button {
-            background-color: #ff6f61;
+        button {
+            background-color: #007bff;
             color: #fff;
             border: none;
             border-radius: 5px;
@@ -46,41 +45,50 @@
             transition: background-color 0.3s ease;
         }
 
-        .filter-button:hover, .camera-button:hover {
-            background-color: #ff4a4a;
+        button:hover {
+            background-color: #0056b3;
         }
 
-        .filters {
-            display: flex;
-            justify-content: center;
-            margin-top: 10px;
+        #photo, #videoContainer {
+            display: none;
+            margin-top: 20px;
+            max-width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 8px;
         }
 
-        .filters input {
-            margin: 0 10px;
-            cursor: pointer;
+        #photo {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="camera-container">
-        <h1>Camera with Filters</h1>
+        <h1>Camera App</h1>
         <video id="video" autoplay></video>
         <div>
-            <button class="camera-button" id="toggleCamera">Toggle Camera</button>
-            <div class="filters">
-                <label>
-                    <input type="radio" name="filter" value="none" checked> None
-                </label>
-                <label>
-                    <input type="radio" name="filter" value="grayscale"> Grayscale
-                </label>
-            </div>
+            <button id="toggleCamera">Toggle Camera</button>
+            <button id="startCamera">Start Camera</button>
+            <button id="capturePhoto">Capture Photo</button>
+            <button id="startRecording">Start Recording</button>
+            <button id="stopRecording">Stop Recording</button>
         </div>
+        <img id="photo" alt="Captured Photo">
+        <video id="videoContainer" controls></video>
     </div>
-
     <script>
+        const video = document.getElementById('video');
+        const photo = document.getElementById('photo');
+        const videoContainer = document.getElementById('videoContainer');
+        const toggleCameraButton = document.getElementById('toggleCamera');
+        const startCameraButton = document.getElementById('startCamera');
+        const capturePhotoButton = document.getElementById('capturePhoto');
+        const startRecordingButton = document.getElementById('startRecording');
+        const stopRecordingButton = document.getElementById('stopRecording');
+
         let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
         let currentDeviceId = null;
         let currentFacingMode = 'environment'; // Default to back camera
 
@@ -88,8 +96,6 @@
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                const cameraSelect = document.getElementById('toggleCamera');
-
                 if (videoDevices.length > 0) {
                     currentDeviceId = videoDevices.find(device => device.label.includes(currentFacingMode)).deviceId;
                 }
@@ -110,27 +116,74 @@
                     }
                 };
                 mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-                document.getElementById('video').srcObject = mediaStream;
+                video.srcObject = mediaStream;
+                video.style.display = 'block';
+                photo.style.display = 'none';
+                videoContainer.style.display = 'none';
             } catch (error) {
                 console.error('Error accessing the camera:', error);
             }
         }
 
-        document.getElementById('toggleCamera').addEventListener('click', () => {
+        function capturePhoto() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            photo.src = canvas.toDataURL('image/png');
+            photo.style.display = 'block';
+
+            // Trigger a download of the photo
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'photo.png'; // The name of the downloaded file
+            link.click();
+        }
+
+        function startRecording() {
+            if (mediaStream) {
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(mediaStream);
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    videoContainer.src = url;
+                    videoContainer.style.display = 'block';
+
+                    // Trigger a download of the video
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'video.webm'; // The name of the downloaded file
+                    link.click();
+                    URL.revokeObjectURL(url);
+                };
+                mediaRecorder.start();
+            } else {
+                console.error('Camera not started');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+            }
+        }
+
+        toggleCameraButton.addEventListener('click', () => {
             currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
             startCamera();
         });
 
-        document.querySelectorAll('input[name="filter"]').forEach(filter => {
-            filter.addEventListener('change', (event) => {
-                const video = document.getElementById('video');
-                if (event.target.value === 'grayscale') {
-                    video.style.filter = 'grayscale(100%)';
-                } else {
-                    video.style.filter = 'none';
-                }
-            });
-        });
+        startCameraButton.addEventListener('click', startCamera);
+        capturePhotoButton.addEventListener('click', capturePhoto);
+        startRecordingButton.addEventListener('click', startRecording);
+        stopRecordingButton.addEventListener('click', stopRecording);
 
         // Initialize camera on page load
         startCamera();
