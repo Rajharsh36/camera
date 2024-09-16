@@ -91,34 +91,16 @@
         let mediaStream = null;
         let mediaRecorder = null;
         let recordedChunks = [];
-        let currentDeviceId = null;
-        let currentFacingMode = 'environment'; // Default to back camera
-
-        async function getDevices() {
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                if (videoDevices.length > 0) {
-                    // Set the current device ID based on the facing mode
-                    currentDeviceId = videoDevices.find(device => device.label.includes(currentFacingMode))?.deviceId;
-                }
-            } catch (error) {
-                console.error('Error getting devices:', error);
-            }
-        }
+        let facingMode = 'environment'; // Default to back camera
+        let currentStreamConstraints = { video: { facingMode } };
 
         async function startCamera() {
             try {
-                if (currentDeviceId === null) {
-                    await getDevices();
+                if (mediaStream) {
+                    // Stop any existing stream
+                    mediaStream.getTracks().forEach(track => track.stop());
                 }
-                const constraints = {
-                    video: {
-                        deviceId: { exact: currentDeviceId },
-                        facingMode: currentFacingMode
-                    }
-                };
-                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                mediaStream = await navigator.mediaDevices.getUserMedia(currentStreamConstraints);
                 video.srcObject = mediaStream;
             } catch (error) {
                 console.error('Error accessing the camera:', error);
@@ -171,7 +153,8 @@
         }
 
         toggleCameraButton.addEventListener('click', () => {
-            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            facingMode = facingMode === 'environment' ? 'user' : 'environment';
+            currentStreamConstraints = { video: { facingMode } };
             startCamera();
         });
 
