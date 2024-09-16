@@ -122,56 +122,74 @@
                 videoContainer.style.display = 'none';
             } catch (error) {
                 console.error('Error accessing the camera:', error);
+                alert('Error accessing the camera. Check permissions and try again.');
             }
         }
 
         function capturePhoto() {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            photo.src = canvas.toDataURL('image/png');
-            photo.style.display = 'block';
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                photo.src = canvas.toDataURL('image/png');
+                photo.style.display = 'block';
 
-            // Trigger a download of the photo
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/png');
-            link.download = 'photo.png'; // The name of the downloaded file
-            link.click();
+                // Trigger a download of the photo
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'photo.png'; // The name of the downloaded file
+                link.click();
+            } catch (error) {
+                console.error('Error capturing photo:', error);
+                alert('Error capturing photo.');
+            }
         }
 
         function startRecording() {
-            if (mediaStream) {
-                recordedChunks = [];
-                mediaRecorder = new MediaRecorder(mediaStream);
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    videoContainer.src = url;
-                    videoContainer.style.display = 'block';
+            try {
+                if (mediaStream) {
+                    recordedChunks = [];
+                    mediaRecorder = new MediaRecorder(mediaStream);
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            recordedChunks.push(event.data);
+                        }
+                    };
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                        const url = URL.createObjectURL(blob);
+                        videoContainer.src = url;
+                        videoContainer.style.display = 'block';
 
-                    // Trigger a download of the video
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'video.webm'; // The name of the downloaded file
-                    link.click();
-                    URL.revokeObjectURL(url);
-                };
-                mediaRecorder.start();
-            } else {
-                console.error('Camera not started');
+                        // Trigger a download of the video
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'video.webm'; // The name of the downloaded file
+                        link.click();
+                        URL.revokeObjectURL(url);
+                    };
+                    mediaRecorder.start();
+                } else {
+                    console.error('Camera not started');
+                }
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                alert('Error starting recording.');
             }
         }
 
         function stopRecording() {
-            if (mediaRecorder) {
-                mediaRecorder.stop();
+            try {
+                if (mediaRecorder) {
+                    mediaRecorder.stop();
+                } else {
+                    console.error('Recording not started');
+                }
+            } catch (error) {
+                console.error('Error stopping recording:', error);
+                alert('Error stopping recording.');
             }
         }
 
